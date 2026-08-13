@@ -1,0 +1,261 @@
+// Prisma schema for the personal CRM / project management platform.
+// This models the FULL system described in the architecture doc (all phases),
+// but only the Project + User pieces are wired up to the UI in Phase 1.
+// Everything else (Task, Risk, Workflow, ActivityLog) exists now so later
+// phases are additive migrations instead of reshaping the schema.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Users & auth
+// ---------------------------------------------------------------------------
+
+enum Role {
+  ADMIN // full access, single owner-user today
+  COLLABORATOR // can edit assigned projects/tasks (future)
+  READ_ONLY // view-only (future)
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(ADMIN)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedProjects Project[]     @relation("ProjectOwner")
+  assignedTasks Task[]        @relation("TaskAssignee")
+  ownedRisks    Risk[]        @relation("RiskOwner")
+  activityLogs  ActivityLog[]
+}
+
+// ---------------------------------------------------------------------------
+// Projects
+// ---------------------------------------------------------------------------
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+model Project {
+  id            String        @id @default(cuid())
+  name          String
+  description   String?
+  client        String?
+  startDate     DateTime?
+  endDate       DateTime?
+  status        ProjectStatus @default(PLANNING)
+  budgetPlanned Float?
+  budgetSpent   Float?
+  ownerId       String?
+  owner         User?         @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  tasks     Task[]
+  risks     Risk[]
+  workflows Workflow[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([ownerId])
+}
+
+// ---------------------------------------------------------------------------
+// Tasks / Gantt (Phase 2)
+// ---------------------------------------------------------------------------
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BLOCKED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum DependencyType {
+  FINISH_TO_START
+  START_TO_START
+  FINISH_TO_FINISH
+  START_TO_FINISH
+}
+
+model Task {
+  id           String     @id @default(cuid())
+  projectId    String
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  startDate    DateTime
+  endDate      DateTime
+  progress     Int        @default(0)
+  status       TaskStatus @default(TODO)
+  priority     Priority   @default(MEDIUM)
+  isMilestone  Boolean    @default(false)
+  assigneeId   String?
+  assignee     User?      @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  parentTaskId String?
+  parentTask   Task?      @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subTasks     Task[]     @relation("SubTasks")
+
+  dependsOn   TaskDependency[] @relation("DependencySuccessor")
+  dependedBy  TaskDependency[] @relation("DependencyPredecessor")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([parentTaskId])
+}
+
+model TaskDependency {
+  id              String         @id @default(cuid())
+  taskId          String
+  task            Task           @relation("DependencySuccessor", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnTaskId String
+  dependsOnTask   Task           @relation("DependencyPredecessor", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+  type            DependencyType @default(FINISH_TO_START)
+  createdAt       DateTime       @default(now())
+
+  @@unique([taskId, dependsOnTaskId])
+}
+
+// ---------------------------------------------------------------------------
+// Risks (Phase 3)
+// ---------------------------------------------------------------------------
+
+enum RiskCategory {
+  TECHNICAL
+  FINANCIAL
+  OPERATIONAL
+  LEGAL
+  MARKET
+  OTHER
+}
+
+enum RiskStatus {
+  IDENTIFIED
+  MONITORING
+  MITIGATED
+  MATERIALIZED
+  CLOSED
+}
+
+model Risk {
+  id             String       @id @default(cuid())
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  category       RiskCategory @default(OTHER)
+  probability    Int // 1-5
+  impact         Int // 1-5
+  severity       Int // stored = probability * impact, for fast sorting/filtering
+  status         RiskStatus   @default(IDENTIFIED)
+  mitigationPlan String?
+  ownerId        String?
+  owner          User?        @relation("RiskOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([severity])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Workflows (Phase 4)
+// ---------------------------------------------------------------------------
+
+enum WorkflowNodeType {
+  START
+  TASK
+  DECISION
+  END
+  SUBFLOW
+}
+
+model Workflow {
+  id         String   @id @default(cuid())
+  projectId  String?
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name       String
+  version    Int      @default(1)
+  isTemplate Boolean  @default(false)
+
+  nodes WorkflowNode[]
+  edges WorkflowEdge[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model WorkflowNode {
+  id         String           @id @default(cuid())
+  workflowId String
+  workflow   Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  type       WorkflowNodeType
+  label      String
+  positionX  Float
+  positionY  Float
+  data       Json?
+
+  sourceEdges WorkflowEdge[] @relation("EdgeSource")
+  targetEdges WorkflowEdge[] @relation("EdgeTarget")
+
+  @@index([workflowId])
+}
+
+model WorkflowEdge {
+  id           String       @id @default(cuid())
+  workflowId   String
+  workflow     Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  sourceNodeId String
+  sourceNode   WorkflowNode @relation("EdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNodeId String
+  targetNode   WorkflowNode @relation("EdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  label        String?
+
+  @@index([workflowId])
+}
+
+// ---------------------------------------------------------------------------
+// Activity log (used across all modules)
+// ---------------------------------------------------------------------------
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  entityType String // "Project" | "Task" | "Risk" | "Workflow" | ...
+  entityId   String
+  action     String // "created" | "updated" | "deleted" | "status_changed" | ...
+  metadata   Json?
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
