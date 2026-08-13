@@ -4,8 +4,9 @@ Plataforma centralizada para gestionar múltiples proyectos: cronogramas, riesgo
 flujos operativos y un dashboard ejecutivo. Ver [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 para el detalle de arquitectura y el plan de fases.
 
-**Estado actual: Fase 1 — Fundaciones (completa).** CRUD de proyectos, login,
-modelo de datos completo y layout base. Fases 2-6 (Gantt, Riesgos, Flujos,
+**Estado actual: Fase 2 — Tareas y Gantt (completa).** CRUD de proyectos, login,
+modelo de datos completo, layout base, y ahora tareas con vista Gantt
+(drag/resize), Lista y Kanban por proyecto. Fases 3-6 (Riesgos, Flujos,
 Dashboard ejecutivo, pulido) están planificadas — ver el roadmap en
 `ARCHITECTURE.md`.
 
@@ -60,9 +61,12 @@ src/
       dashboard/
       projects/
         [id]/
+          tasks/         # Gantt / Lista / Kanban del proyecto
     api/                # route handlers (REST-ish, JSON)
       auth/{login,logout,me}/
-      projects/[id]/
+      users/
+      projects/[id]/tasks/
+      tasks/[id]/{dates,status}/
     login/               # única ruta pública
     layout.tsx           # layout raíz (fuentes, metadata)
     page.tsx             # redirige a /dashboard
@@ -71,11 +75,13 @@ src/
     ui/                  # Button, Input, Card, Badge, Modal, etc. (genéricos)
     layout/              # Sidebar, AppShell, nav-items
     projects/            # componentes específicos del módulo Proyectos
+    tasks/                # GanttChart, TaskListView, TaskKanbanView, TaskForm
   lib/
     prisma.ts            # cliente Prisma (driver adapter pg)
     auth.ts / session.ts # sesión JWT (session.ts es edge-safe, para proxy.ts)
     activity.ts           # helper para ActivityLog
     validations/          # esquemas zod
+    gantt-dates.ts         # helpers de fecha puros para el Gantt (sin deps)
   types/                  # DTOs compartidos front/back
   generated/prisma/        # cliente Prisma generado (gitignored)
   proxy.ts                 # protección de rutas (reemplaza middleware.ts)

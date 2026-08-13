@@ -12,12 +12,17 @@ export const projectStatusSchema = z.enum(PROJECT_STATUSES);
 
 const optionalDate = z
   .string()
-  .trim()
-  .min(1)
-  .transform((v) => new Date(v))
-  .refine((d) => !Number.isNaN(d.getTime()), "Fecha inválida")
   .nullable()
-  .optional();
+  .optional()
+  .transform((v, ctx) => {
+    if (!v || v.trim().length === 0) return null;
+    const d = new Date(v);
+    if (Number.isNaN(d.getTime())) {
+      ctx.addIssue({ code: "custom", message: "Fecha inválida" });
+      return z.NEVER;
+    }
+    return d;
+  });
 
 const optionalString = z
   .string()

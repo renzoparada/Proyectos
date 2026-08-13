@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, GanttChartSquare, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
@@ -13,12 +13,17 @@ import { formatBudget, formatDate } from "@/lib/utils";
 import type { ProjectDTO } from "@/types/project";
 
 const COMING_SOON_TABS = [
-  { label: "Gantt / Tareas", phase: "Fase 2" },
   { label: "Riesgos", phase: "Fase 3" },
   { label: "Flujos", phase: "Fase 4" },
 ];
 
-export function ProjectDetailView({ project: initial }: { project: ProjectDTO }) {
+export function ProjectDetailView({
+  project: initial,
+  taskStats,
+}: {
+  project: ProjectDTO;
+  taskStats: { total: number; overdue: number };
+}) {
   const router = useRouter();
   const [project, setProject] = useState(initial);
   const [editing, setEditing] = useState(false);
@@ -102,12 +107,34 @@ export function ProjectDetailView({ project: initial }: { project: ProjectDTO })
         />
       </div>
 
+      <Link href={`/projects/${project.id}/tasks`} className="mb-4 block">
+        <Card className="flex items-center justify-between gap-4 p-4 transition-colors hover:border-accent/40">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-accent/10 text-accent">
+              <GanttChartSquare size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Tareas y Gantt</p>
+              <p className="text-xs text-muted">
+                {taskStats.total} tarea(s)
+                {taskStats.overdue > 0 && (
+                  <span className="ml-1 inline-flex items-center gap-1 text-danger">
+                    <AlertTriangle size={11} /> {taskStats.overdue} vencida(s)
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+          <ArrowRight size={16} className="shrink-0 text-muted" />
+        </Card>
+      </Link>
+
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Próximamente en este proyecto</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {COMING_SOON_TABS.map((tab) => (
               <div
                 key={tab.label}

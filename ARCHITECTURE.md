@@ -11,7 +11,7 @@
 | ORM | Prisma 7 (`prisma-client` generator + `@prisma/adapter-pg`) | Ver nota de versión abajo. |
 | Auth | Sesión propia (JWT en cookie httpOnly, `jose` + `bcryptjs`) en vez de NextAuth | Ver justificación abajo. |
 | Gráficos (Fase 5) | Recharts | A integrar en el dashboard ejecutivo. |
-| Gantt (Fase 2) | `gantt-task-react` o construido a medida sobre la tabla `Task` | A evaluar en Fase 2 según necesidad de drag & resize. |
+| Gantt (Fase 2) | **Construido a medida** (`src/components/tasks/GanttChart.tsx`) | Ver justificación abajo. |
 | Diagramas de flujo (Fase 4) | React Flow | El schema (`Workflow`, `WorkflowNode`, `WorkflowEdge`) ya está listo para consumirlo. |
 | Deploy sugerido | Vercel (app) + Postgres administrado (Neon/Supabase/RDS) | No configurado todavía; agregar cuando quieras desplegar. |
 
@@ -34,6 +34,15 @@
   `ActivityLog`, aunque solo `Project` y `User` tienen UI todavía. Así las fases
   2-4 son features nuevas sobre tablas existentes, no migraciones que reordenan
   lo ya construido.
+- **Gantt construido a medida en vez de `gantt-task-react`/`frappe-gantt`**:
+  `gantt-task-react` solo declara compatibilidad con React 18 (este proyecto usa
+  React 19) y está prácticamente sin mantenimiento; `frappe-gantt` es una
+  librería vanilla-JS con su propio CSS, difícil de integrar de forma prolija
+  con el sistema de diseño (tokens de `globals.css`, modo oscuro) y con el
+  control fino que pide el spec (drag/resize, hitos, conectores de dependencia,
+  indicador de vencidas). El componente propio (`GanttChart.tsx`) usa Pointer
+  Events nativos para mover/redimensionar barras, y SVG para las líneas de
+  dependencia — sin dependencias externas nuevas.
 
 ### Nota de versiones (importante para quien siga desarrollando)
 
@@ -75,8 +84,8 @@ Ver la sección "Estructura del proyecto" en `README.md`.
 | Fase | Alcance | Estado |
 |---|---|---|
 | **1. Fundaciones** | Setup, modelo de datos completo, auth, CRUD de Proyectos, layout base (Sidebar/Topbar), dashboard placeholder con datos reales | ✅ Completa |
-| **2. Tareas y Gantt** | CRUD de tareas y dependencias, vista Gantt interactiva (drag/resize), vista Lista, vista Kanban, hitos, filtros | ⏳ Próxima |
-| **3. Riesgos** | CRUD de riesgos, matriz de calor 5×5, vista consolidada multi-proyecto | Planeada |
+| **2. Tareas y Gantt** | CRUD de tareas y dependencias, vista Gantt interactiva (drag/resize, custom), vista Lista, vista Kanban (drag & drop), hitos, indicador de vencidas, filtros | ✅ Completa |
+| **3. Riesgos** | CRUD de riesgos, matriz de calor 5×5, vista consolidada multi-proyecto | ⏳ Próxima |
 | **4. Flujos** | Constructor visual con React Flow, tipos de nodo, versionado, plantillas reutilizables | Planeada |
 | **5. Dashboard ejecutivo** | Health score por proyecto, timeline consolidado de hitos, top riesgos cross-proyecto, carga de trabajo por responsable, gráficos (Recharts) | Planeada |
 | **6. Pulido** | Roles multi-usuario reales, exportación PDF/Excel, notificaciones, mejoras responsive | Planeada |
