@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function ProjectDetailPage(props: PageProps<"/projects/[id]">) {
   const { id } = await props.params;
 
-  const [project, taskTotal, overdueTotal] = await Promise.all([
+  const [project, taskTotal, overdueTotal, riskTotal, highSeverityTotal] = await Promise.all([
     prisma.project.findUnique({
       where: { id },
       include: { owner: { select: { id: true, name: true, email: true } } },
@@ -17,6 +17,8 @@ export default async function ProjectDetailPage(props: PageProps<"/projects/[id]
     prisma.task.count({
       where: { projectId: id, status: { not: "DONE" }, endDate: { lt: new Date() } },
     }),
+    prisma.risk.count({ where: { projectId: id } }),
+    prisma.risk.count({ where: { projectId: id, severity: { gte: 10 } } }),
   ]);
 
   if (!project) notFound();
@@ -25,6 +27,7 @@ export default async function ProjectDetailPage(props: PageProps<"/projects/[id]
     <ProjectDetailView
       project={JSON.parse(JSON.stringify(project)) as ProjectDTO}
       taskStats={{ total: taskTotal, overdue: overdueTotal }}
+      riskStats={{ total: riskTotal, highSeverity: highSeverityTotal }}
     />
   );
 }

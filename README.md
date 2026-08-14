@@ -4,11 +4,11 @@ Plataforma centralizada para gestionar múltiples proyectos: cronogramas, riesgo
 flujos operativos y un dashboard ejecutivo. Ver [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 para el detalle de arquitectura y el plan de fases.
 
-**Estado actual: Fase 2 — Tareas y Gantt (completa).** CRUD de proyectos, login,
-modelo de datos completo, layout base, y ahora tareas con vista Gantt
-(drag/resize), Lista y Kanban por proyecto. Fases 3-6 (Riesgos, Flujos,
-Dashboard ejecutivo, pulido) están planificadas — ver el roadmap en
-`ARCHITECTURE.md`.
+**Estado actual: Fase 3 — Riesgos (completa).** CRUD de proyectos, login,
+modelo de datos completo, layout base, tareas con Gantt/Lista/Kanban, y ahora
+gestión de riesgos con matriz de calor por proyecto y consolidada
+cross-proyecto. Fases 4-6 (Flujos, Dashboard ejecutivo, pulido) están
+planificadas — ver el roadmap en `ARCHITECTURE.md`.
 
 ## Stack
 
@@ -62,11 +62,14 @@ src/
       projects/
         [id]/
           tasks/         # Gantt / Lista / Kanban del proyecto
+          risks/         # matriz de calor + lista de riesgos del proyecto
+      risks/              # matriz de calor consolidada (todos los proyectos)
     api/                # route handlers (REST-ish, JSON)
       auth/{login,logout,me}/
       users/
-      projects/[id]/tasks/
+      projects/[id]/{tasks,risks}/
       tasks/[id]/{dates,status}/
+      risks/[id]/, risks/ (consolidado)
     login/               # única ruta pública
     layout.tsx           # layout raíz (fuentes, metadata)
     page.tsx             # redirige a /dashboard
@@ -76,11 +79,13 @@ src/
     layout/              # Sidebar, AppShell, nav-items
     projects/            # componentes específicos del módulo Proyectos
     tasks/                # GanttChart, TaskListView, TaskKanbanView, TaskForm
+    risks/                 # RiskHeatmap, RiskListView, RiskForm, vista consolidada
   lib/
     prisma.ts            # cliente Prisma (driver adapter pg)
     auth.ts / session.ts # sesión JWT (session.ts es edge-safe, para proxy.ts)
     activity.ts           # helper para ActivityLog
     validations/          # esquemas zod
+    risk-meta.ts           # categorías/estados/bandas de severidad del heatmap
     gantt-dates.ts         # helpers de fecha puros para el Gantt (sin deps)
   types/                  # DTOs compartidos front/back
   generated/prisma/        # cliente Prisma generado (gitignored)

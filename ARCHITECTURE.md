@@ -85,8 +85,8 @@ Ver la sección "Estructura del proyecto" en `README.md`.
 |---|---|---|
 | **1. Fundaciones** | Setup, modelo de datos completo, auth, CRUD de Proyectos, layout base (Sidebar/Topbar), dashboard placeholder con datos reales | ✅ Completa |
 | **2. Tareas y Gantt** | CRUD de tareas y dependencias, vista Gantt interactiva (drag/resize, custom), vista Lista, vista Kanban (drag & drop), hitos, indicador de vencidas, filtros | ✅ Completa |
-| **3. Riesgos** | CRUD de riesgos, matriz de calor 5×5, vista consolidada multi-proyecto | ⏳ Próxima |
-| **4. Flujos** | Constructor visual con React Flow, tipos de nodo, versionado, plantillas reutilizables | Planeada |
+| **3. Riesgos** | CRUD de riesgos, severidad calculada, matriz de calor 5×5 por proyecto y consolidada multi-proyecto | ✅ Completa |
+| **4. Flujos** | Constructor visual con React Flow, tipos de nodo, versionado, plantillas reutilizables | ⏳ Próxima |
 | **5. Dashboard ejecutivo** | Health score por proyecto, timeline consolidado de hitos, top riesgos cross-proyecto, carga de trabajo por responsable, gráficos (Recharts) | Planeada |
 | **6. Pulido** | Roles multi-usuario reales, exportación PDF/Excel, notificaciones, mejoras responsive | Planeada |
 
