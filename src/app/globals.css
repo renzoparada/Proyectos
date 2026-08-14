@@ -86,3 +86,27 @@ body {
   background: var(--border);
   border-radius: 999px;
 }
+
+/* React Flow (workflows editor) theming — map its CSS variables to ours so
+   the canvas matches the app's palette in both light and dark mode. */
+.react-flow-shell {
+  --xy-background-color: var(--background);
+  --xy-background-pattern-color: var(--border);
+  --xy-edge-stroke: var(--muted);
+  --xy-edge-stroke-selected: var(--accent);
+  --xy-edge-stroke-width: 1.5;
+  --xy-edge-label-background-color: var(--surface);
+  --xy-edge-label-color: var(--foreground);
+  --xy-connectionline-stroke: var(--accent);
+  --xy-connectionline-stroke-width: 1.5;
+  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-background-color-hover: var(--surface-hover);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-color-hover: var(--accent);
+  --xy-controls-button-border-color: var(--border);
+  --xy-minimap-background-color: var(--surface);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--foreground) 8%, transparent);
+  --xy-minimap-node-background-color: var(--border);
+  --xy-attribution-background-color: transparent;
+}
+

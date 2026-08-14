@@ -12,7 +12,7 @@
 | Auth | Sesión propia (JWT en cookie httpOnly, `jose` + `bcryptjs`) en vez de NextAuth | Ver justificación abajo. |
 | Gráficos (Fase 5) | Recharts | A integrar en el dashboard ejecutivo. |
 | Gantt (Fase 2) | **Construido a medida** (`src/components/tasks/GanttChart.tsx`) | Ver justificación abajo. |
-| Diagramas de flujo (Fase 4) | React Flow | El schema (`Workflow`, `WorkflowNode`, `WorkflowEdge`) ya está listo para consumirlo. |
+| Diagramas de flujo (Fase 4) | `@xyflow/react` (React Flow v12) | Peer deps `react >=17`, compatible con React 19 (a diferencia de `gantt-task-react`). |
 | Deploy sugerido | Vercel (app) + Postgres administrado (Neon/Supabase/RDS) | No configurado todavía; agregar cuando quieras desplegar. |
 
 ### Ajustes respecto a la propuesta original
@@ -43,6 +43,22 @@
   indicador de vencidas). El componente propio (`GanttChart.tsx`) usa Pointer
   Events nativos para mover/redimensionar barras, y SVG para las líneas de
   dependencia — sin dependencias externas nuevas.
+- **Guardado de flujos: reemplazo completo del grafo, no reconciliación
+  incremental**: al guardar, el editor manda TODOS los nodos/aristas actuales
+  y `PUT /api/workflows/[id]/graph` borra y recrea todo dentro de una
+  transacción (ver `src/app/api/workflows/[id]/graph/route.ts`). Es más simple
+  y suficientemente rápido para diagramas de decenas de nodos (uso personal,
+  sin colaboración en tiempo real); si el flujo creciera a cientos de nodos o
+  se necesitara edición concurrente, ahí sí conviene un diff incremental.
+- **Versionado simple, no historial completo**: "guardar nueva versión" solo
+  incrementa `Workflow.version` en la misma fila (no guarda snapshots de
+  versiones anteriores). Si más adelante quieres poder volver a una versión
+  vieja, hay que agregar una tabla `WorkflowVersion` que snapshotee
+  nodos/aristas en cada bump — el modelo actual no lo bloquea, es aditivo.
+- **El editor de flujos es desktop-first**: la paleta de nodos se oculta en
+  mobile (`sm:block`) porque armar un diagrama de nodos con el dedo es poco
+  práctico; en mobile se puede ver/hacer pan-zoom del diagrama y gestionar la
+  lista de flujos, pero no agregar nodos. Mismo criterio que el Gantt.
 
 ### Nota de versiones (importante para quien siga desarrollando)
 
@@ -86,8 +102,8 @@ Ver la sección "Estructura del proyecto" en `README.md`.
 | **1. Fundaciones** | Setup, modelo de datos completo, auth, CRUD de Proyectos, layout base (Sidebar/Topbar), dashboard placeholder con datos reales | ✅ Completa |
 | **2. Tareas y Gantt** | CRUD de tareas y dependencias, vista Gantt interactiva (drag/resize, custom), vista Lista, vista Kanban (drag & drop), hitos, indicador de vencidas, filtros | ✅ Completa |
 | **3. Riesgos** | CRUD de riesgos, severidad calculada, matriz de calor 5×5 por proyecto y consolidada multi-proyecto | ✅ Completa |
-| **4. Flujos** | Constructor visual con React Flow, tipos de nodo, versionado, plantillas reutilizables | ⏳ Próxima |
-| **5. Dashboard ejecutivo** | Health score por proyecto, timeline consolidado de hitos, top riesgos cross-proyecto, carga de trabajo por responsable, gráficos (Recharts) | Planeada |
+| **4. Flujos** | Constructor visual con React Flow, 5 tipos de nodo, conectores con etiqueta, versionado, plantillas reutilizables y flujos por proyecto | ✅ Completa |
+| **5. Dashboard ejecutivo** | Health score por proyecto, timeline consolidado de hitos, top riesgos cross-proyecto, carga de trabajo por responsable, gráficos (Recharts) | ⏳ Próxima |
 | **6. Pulido** | Roles multi-usuario reales, exportación PDF/Excel, notificaciones, mejoras responsive | Planeada |
 
 Cada fase se entrega, se revisa contigo, y recién ahí se empieza la siguiente.

@@ -4,11 +4,11 @@ Plataforma centralizada para gestionar múltiples proyectos: cronogramas, riesgo
 flujos operativos y un dashboard ejecutivo. Ver [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 para el detalle de arquitectura y el plan de fases.
 
-**Estado actual: Fase 3 — Riesgos (completa).** CRUD de proyectos, login,
-modelo de datos completo, layout base, tareas con Gantt/Lista/Kanban, y ahora
-gestión de riesgos con matriz de calor por proyecto y consolidada
-cross-proyecto. Fases 4-6 (Flujos, Dashboard ejecutivo, pulido) están
-planificadas — ver el roadmap en `ARCHITECTURE.md`.
+**Estado actual: Fase 4 — Flujos (completa).** CRUD de proyectos, login,
+modelo de datos completo, layout base, tareas con Gantt/Lista/Kanban, riesgos
+con matriz de calor, y ahora un constructor visual de flujos (React Flow)
+con nodos, conectores, plantillas y versionado. Fases 5-6 (Dashboard
+ejecutivo, pulido) están planificadas — ver el roadmap en `ARCHITECTURE.md`.
 
 ## Stack
 
@@ -17,6 +17,7 @@ planificadas — ver el roadmap en `ARCHITECTURE.md`.
 - **Base de datos**: PostgreSQL vía Prisma ORM 7 (driver adapter `@prisma/adapter-pg`)
 - **Auth**: sesión propia con JWT firmado (`jose`) en cookie httpOnly + `bcryptjs`
   para contraseñas — pensado para migrar a multi-usuario/roles sin rehacer el modelo
+- **Diagramas de flujo**: `@xyflow/react` (React Flow v12)
 - **Iconos**: lucide-react
 
 > **Nota sobre versiones**: este proyecto usa Next.js 16, que renombró
@@ -63,13 +64,17 @@ src/
         [id]/
           tasks/         # Gantt / Lista / Kanban del proyecto
           risks/         # matriz de calor + lista de riesgos del proyecto
+          workflows/     # flujos asociados a este proyecto
       risks/              # matriz de calor consolidada (todos los proyectos)
+      workflows/          # catálogo de flujos (plantillas + de proyecto)
+        [id]/              # editor visual (React Flow), full-bleed
     api/                # route handlers (REST-ish, JSON)
       auth/{login,logout,me}/
       users/
       projects/[id]/{tasks,risks}/
       tasks/[id]/{dates,status}/
       risks/[id]/, risks/ (consolidado)
+      workflows/, workflows/[id]/{graph,duplicate}/
     login/               # única ruta pública
     layout.tsx           # layout raíz (fuentes, metadata)
     page.tsx             # redirige a /dashboard
@@ -80,6 +85,7 @@ src/
     projects/            # componentes específicos del módulo Proyectos
     tasks/                # GanttChart, TaskListView, TaskKanbanView, TaskForm
     risks/                 # RiskHeatmap, RiskListView, RiskForm, vista consolidada
+    workflows/              # WorkflowEditor (React Flow), nodos custom, lista
   lib/
     prisma.ts            # cliente Prisma (driver adapter pg)
     auth.ts / session.ts # sesión JWT (session.ts es edge-safe, para proxy.ts)
@@ -87,6 +93,7 @@ src/
     validations/          # esquemas zod
     risk-meta.ts           # categorías/estados/bandas de severidad del heatmap
     gantt-dates.ts         # helpers de fecha puros para el Gantt (sin deps)
+    workflow-graph.ts       # conversión DB ⇄ nodos/edges de React Flow
   types/                  # DTOs compartidos front/back
   generated/prisma/        # cliente Prisma generado (gitignored)
   proxy.ts                 # protección de rutas (reemplaza middleware.ts)

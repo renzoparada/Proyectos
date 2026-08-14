@@ -11,25 +11,26 @@ import {
   Pencil,
   ShieldAlert,
   Trash2,
+  Workflow,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { ProjectForm, type ProjectFormValues } from "@/components/projects/ProjectForm";
 import { ProjectStatusBadge } from "@/components/projects/ProjectStatusBadge";
 import { formatBudget, formatDate } from "@/lib/utils";
 import type { ProjectDTO } from "@/types/project";
 
-const COMING_SOON_TABS = [{ label: "Flujos", phase: "Fase 4" }];
-
 export function ProjectDetailView({
   project: initial,
   taskStats,
   riskStats,
+  workflowCount,
 }: {
   project: ProjectDTO;
   taskStats: { total: number; overdue: number };
   riskStats: { total: number; highSeverity: number };
+  workflowCount: number;
 }) {
   const router = useRouter();
   const [project, setProject] = useState(initial);
@@ -114,7 +115,7 @@ export function ProjectDetailView({
         />
       </div>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Link href={`/projects/${project.id}/tasks`}>
           <Card className="flex h-full items-center justify-between gap-4 p-4 transition-colors hover:border-accent/40">
             <div className="flex items-center gap-3">
@@ -158,26 +159,22 @@ export function ProjectDetailView({
             <ArrowRight size={16} className="shrink-0 text-muted" />
           </Card>
         </Link>
-      </div>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Próximamente en este proyecto</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-3">
-            {COMING_SOON_TABS.map((tab) => (
-              <div
-                key={tab.label}
-                className="rounded-md border border-dashed border-border p-4 text-center"
-              >
-                <p className="text-sm font-medium text-foreground">{tab.label}</p>
-                <p className="mt-1 text-xs text-muted">Disponible en {tab.phase}</p>
+        <Link href={`/projects/${project.id}/workflows`}>
+          <Card className="flex h-full items-center justify-between gap-4 p-4 transition-colors hover:border-accent/40">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-accent/10 text-accent">
+                <Workflow size={18} />
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Flujos</p>
+                <p className="text-xs text-muted">{workflowCount} flujo(s)</p>
+              </div>
+            </div>
+            <ArrowRight size={16} className="shrink-0 text-muted" />
+          </Card>
+        </Link>
+      </div>
 
       <Modal open={editing} onClose={() => setEditing(false)} title="Editar proyecto">
         <ProjectForm

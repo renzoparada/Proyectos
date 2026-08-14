@@ -9,11 +9,11 @@ export type NavItem = {
 };
 
 // Gantt/Tareas is per-project (see /projects/[id]/tasks), so it doesn't get
-// its own top-level nav entry — only cross-project modules do. Risks has
-// both: a per-project view AND this consolidated cross-project matrix.
+// its own top-level nav entry — only cross-project modules do. Risks and
+// Flujos have both: a per-project view AND this consolidated/catalog view.
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Proyectos", href: "/projects", icon: FolderKanban },
   { label: "Riesgos", href: "/risks", icon: ShieldAlert },
-  { label: "Flujos", href: "/workflows", icon: Workflow, comingSoonPhase: "Fase 4" },
+  { label: "Flujos", href: "/workflows", icon: Workflow },
 ];
