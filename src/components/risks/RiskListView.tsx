@@ -14,8 +14,8 @@ export function RiskListView({
 }: {
   risks: RiskDTO[];
   showProject?: boolean;
-  onEdit: (risk: RiskDTO) => void;
-  onDelete: (risk: RiskDTO) => void;
+  onEdit?: (risk: RiskDTO) => void;
+  onDelete?: (risk: RiskDTO) => void;
 }) {
   if (risks.length === 0) {
     return (
@@ -45,12 +45,16 @@ export function RiskListView({
           {risks.map((risk) => (
             <tr key={risk.id} className="border-b border-border last:border-0 hover:bg-surface-hover">
               <td className="px-4 py-2.5">
-                <button
-                  onClick={() => onEdit(risk)}
-                  className="text-left font-medium text-foreground hover:text-accent"
-                >
-                  {risk.name}
-                </button>
+                {onEdit ? (
+                  <button
+                    onClick={() => onEdit(risk)}
+                    className="text-left font-medium text-foreground hover:text-accent"
+                  >
+                    {risk.name}
+                  </button>
+                ) : (
+                  <span className="font-medium text-foreground">{risk.name}</span>
+                )}
               </td>
               {showProject && (
                 <td className="px-4 py-2.5">
@@ -80,22 +84,28 @@ export function RiskListView({
               </td>
               <td className="px-4 py-2.5 text-foreground">{risk.owner?.name ?? "—"}</td>
               <td className="px-4 py-2.5">
-                <div className="flex justify-end gap-1">
-                  <button
-                    onClick={() => onEdit(risk)}
-                    className="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground"
-                    aria-label="Editar"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => onDelete(risk)}
-                    className="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-danger"
-                    aria-label="Eliminar"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                {(onEdit || onDelete) && (
+                  <div className="flex justify-end gap-1">
+                    {onEdit && (
+                      <button
+                        onClick={() => onEdit(risk)}
+                        className="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground"
+                        aria-label="Editar"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button
+                        onClick={() => onDelete(risk)}
+                        className="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-danger"
+                        aria-label="Eliminar"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </td>
             </tr>
           ))}

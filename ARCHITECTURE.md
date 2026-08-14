@@ -10,7 +10,7 @@
 | Base de datos | PostgreSQL | Real, persistente, apta para relaciones (dependencias de tareas, riesgos, workflows). |
 | ORM | Prisma 7 (`prisma-client` generator + `@prisma/adapter-pg`) | Ver nota de versión abajo. |
 | Auth | Sesión propia (JWT en cookie httpOnly, `jose` + `bcryptjs`) en vez de NextAuth | Ver justificación abajo. |
-| Gráficos (Fase 5) | Recharts | A integrar en el dashboard ejecutivo. |
+| Gráficos (Fase 5) | Recharts | Dashboard ejecutivo: dona de estados, barras de avance, tendencia de riesgos, presupuesto. |
 | Gantt (Fase 2) | **Construido a medida** (`src/components/tasks/GanttChart.tsx`) | Ver justificación abajo. |
 | Diagramas de flujo (Fase 4) | `@xyflow/react` (React Flow v12) | Peer deps `react >=17`, compatible con React 19 (a diferencia de `gantt-task-react`). |
 | Deploy sugerido | Vercel (app) + Postgres administrado (Neon/Supabase/RDS) | No configurado todavía; agregar cuando quieras desplegar. |
@@ -59,6 +59,45 @@
   mobile (`sm:block`) porque armar un diagrama de nodos con el dedo es poco
   práctico; en mobile se puede ver/hacer pan-zoom del diagrama y gestionar la
   lista de flujos, pero no agregar nodos. Mismo criterio que el Gantt.
+- **Health score: sistema de penalización aditiva, no un modelo de ML**
+  (`src/lib/health-score.ts`): parte de 100 y resta por avance por debajo del
+  tiempo transcurrido, tareas vencidas y riesgos abiertos de severidad alta+;
+  el resultado se banda en `GREEN`/`YELLOW`/`RED` con las razones expuestas
+  (no solo el número), para que el ejecutivo entienda *por qué* un proyecto
+  está en rojo sin abrir el detalle. Simple, determinístico y fácil de
+  ajustar (son constantes en un solo archivo) en vez de un score "caja negra".
+- **Dashboard como agregaciones server-side, no client-side**: `getDashboardData()`
+  (`src/lib/dashboard-data.ts`) hace todas las queries pesadas (conteos,
+  promedios, top riesgos, carga de trabajo) con Prisma en el servidor y le
+  pasa al cliente solo los datos ya calculados; Recharts solo dibuja. Evita
+  mandar todas las tareas/riesgos de todos los proyectos al navegador para
+  agregarlos ahí.
+- **Roles reales en vez de solo el campo `role` de la Fase 1**: cada ruta
+  mutante (`POST`/`PATCH`/`DELETE` de proyectos, tareas, riesgos, flujos)
+  pasa por `requireApiRole()` (`src/lib/auth.ts`), que devuelve 401/403 según
+  corresponda antes de tocar la base de datos. La UI usa las mismas reglas
+  del lado cliente (`src/lib/permissions.ts`: `canWrite()`/`isAdmin()`) para
+  ocultar botones de escritura — pero la fuente de verdad es siempre el
+  servidor, nunca se confía en que el cliente oculte algo. `READ_ONLY` no ve
+  botones de mutación en ninguna vista; `/team` (gestión de usuarios) está
+  restringido a `ADMIN` con redirect server-side. Se bloquea explícitamente
+  la auto-degradación de rol, la auto-eliminación y eliminar el último ADMIN.
+- **Exportación CSV en vez de PDF/Excel real**: el spec original mencionaba
+  "PDF/Excel", pero para datos tabulares (proyectos, tareas, riesgos) CSV es
+  el formato que Excel/Sheets abren nativamente sin ninguna librería nueva —
+  `src/lib/csv.ts` genera el archivo client-side (Blob + BOM UTF-8) a partir
+  de la vista ya filtrada en pantalla. Se descartó agregar una librería de
+  generación de PDF (peso y complejidad no justificados para un export de
+  tablas); si más adelante se necesita un reporte con formato visual
+  (no solo filas y columnas), ahí sí conviene evaluar una librería de PDF.
+- **Notificaciones in-app computadas, no una tabla ni infraestructura de
+  push/email**: `GET /api/notifications` recalcula en cada llamada las tareas
+  vencidas, riesgos críticos abiertos e hitos de los próximos 7 días — no hay
+  tabla `Notification` ni estado de "leído". Es más simple y siempre está al
+  día (no puede desincronizarse), a costa de no tener historial. El
+  `NotificationBell` hace polling cada 2 minutos; si el uso creciera a
+  multi-usuario con notificaciones dirigidas por persona, ahí sí conviene una
+  tabla con estado de lectura y quizás WebSockets/SSE en vez de polling.
 
 ### Nota de versiones (importante para quien siga desarrollando)
 
@@ -103,7 +142,8 @@ Ver la sección "Estructura del proyecto" en `README.md`.
 | **2. Tareas y Gantt** | CRUD de tareas y dependencias, vista Gantt interactiva (drag/resize, custom), vista Lista, vista Kanban (drag & drop), hitos, indicador de vencidas, filtros | ✅ Completa |
 | **3. Riesgos** | CRUD de riesgos, severidad calculada, matriz de calor 5×5 por proyecto y consolidada multi-proyecto | ✅ Completa |
 | **4. Flujos** | Constructor visual con React Flow, 5 tipos de nodo, conectores con etiqueta, versionado, plantillas reutilizables y flujos por proyecto | ✅ Completa |
-| **5. Dashboard ejecutivo** | Health score por proyecto, timeline consolidado de hitos, top riesgos cross-proyecto, carga de trabajo por responsable, gráficos (Recharts) | ⏳ Próxima |
-| **6. Pulido** | Roles multi-usuario reales, exportación PDF/Excel, notificaciones, mejoras responsive | Planeada |
+| **5. Dashboard ejecutivo** | Health score por proyecto, timeline consolidado de hitos, top riesgos cross-proyecto, carga de trabajo por responsable, gráficos (Recharts) | ✅ Completa |
+| **6. Pulido** | Roles multi-usuario reales, exportación CSV, notificaciones in-app, mejoras responsive | ✅ Completa |
 
 Cada fase se entrega, se revisa contigo, y recién ahí se empieza la siguiente.
+Con la Fase 6 se cierran las 6 fases del roadmap original.

@@ -1,3 +1,4 @@
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { WorkflowsView } from "@/components/workflows/WorkflowsView";
 import type { WorkflowSummaryDTO } from "@/types/workflow";
@@ -5,6 +6,7 @@ import type { WorkflowSummaryDTO } from "@/types/workflow";
 export const dynamic = "force-dynamic";
 
 export default async function WorkflowsPage() {
+  const session = await requireSession();
   const [workflows, projects] = await Promise.all([
     prisma.workflow.findMany({
       include: { project: { select: { id: true, name: true } }, _count: { select: { nodes: true } } },
@@ -28,6 +30,7 @@ export default async function WorkflowsPage() {
         initialWorkflows={JSON.parse(JSON.stringify(initialWorkflows)) as WorkflowSummaryDTO[]}
         projects={projects}
         fetchUrl="/api/workflows"
+        currentRole={session.role}
       />
     </div>
   );

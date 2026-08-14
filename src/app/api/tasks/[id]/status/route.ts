@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { requireApiRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { taskStatusUpdateSchema } from "@/lib/validations/task";
@@ -8,8 +8,9 @@ type RouteParams = { params: Promise<{ id: string }> };
 
 // Lightweight endpoint used by the Kanban drag-and-drop.
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const gate = await requireApiRole();
+  if (gate.response) return gate.response;
+  const { session } = gate;
 
   const { id } = await params;
   const existing = await prisma.task.findUnique({ where: { id } });

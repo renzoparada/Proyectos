@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, GanttChartSquare, List, Kanban } from "lucide-react";
+import { Download, Plus, GanttChartSquare, List, Kanban } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -9,7 +9,9 @@ import { GanttChart } from "@/components/tasks/GanttChart";
 import { TaskListView } from "@/components/tasks/TaskListView";
 import { TaskKanbanView } from "@/components/tasks/TaskKanbanView";
 import { TaskForm, type TaskFormValues } from "@/components/tasks/TaskForm";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
+import { canWrite, type Role } from "@/lib/permissions";
+import { toCsv, downloadCsv } from "@/lib/csv";
 import { TASK_STATUS_META, TASK_PRIORITY_META, type TaskStatus } from "@/lib/task-meta";
 import type { TaskDTO, UserOptionDTO } from "@/types/task";
 
@@ -34,11 +36,14 @@ export function TasksView({
   projectId,
   initialTasks,
   users,
+  currentRole,
 }: {
   projectId: string;
   initialTasks: TaskDTO[];
   users: UserOptionDTO[];
+  currentRole: Role;
 }) {
+  const readOnly = !canWrite(currentRole);
   const [tasks, setTasks] = useState(initialTasks);
   const [view, setView] = useState<ViewMode>("gantt");
   const [assigneeFilter, setAssigneeFilter] = useState("ALL");
@@ -146,6 +151,20 @@ export function TasksView({
     (t) => t.status !== "DONE" && new Date(t.endDate) < new Date(new Date().toDateString())
   ).length;
 
+  function handleExport() {
+    const csv = toCsv(filtered, [
+      { header: "Nombre", value: (t) => t.name },
+      { header: "Estado", value: (t) => TASK_STATUS_META[t.status].label },
+      { header: "Prioridad", value: (t) => TASK_PRIORITY_META[t.priority].label },
+      { header: "Responsable", value: (t) => t.assignee?.name },
+      { header: "Fecha inicio", value: (t) => formatDate(t.startDate) },
+      { header: "Fecha fin", value: (t) => formatDate(t.endDate) },
+      { header: "Avance %", value: (t) => t.progress },
+      { header: "Hito", value: (t) => (t.isMilestone ? "Sí" : "No") },
+    ]);
+    downloadCsv(`tareas-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  }
+
   return (
     <div>
       <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -154,10 +173,18 @@ export function TasksView({
           <ViewTab active={view === "list"} onClick={() => setView("list")} icon={List} label="Lista" />
           <ViewTab active={view === "kanban"} onClick={() => setView("kanban")} icon={Kanban} label="Kanban" />
         </div>
-        <Button onClick={() => setModal({ mode: "create" })}>
-          <Plus size={16} />
-          Nueva tarea
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleExport}>
+            <Download size={16} />
+            Exportar CSV
+          </Button>
+          {!readOnly && (
+            <Button onClick={() => setModal({ mode: "create" })}>
+              <Plus size={16} />
+              Nueva tarea
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -194,22 +221,24 @@ export function TasksView({
       {view === "gantt" && (
         <GanttChart
           tasks={filtered}
-          onOpenTask={(task) => setModal({ mode: "edit", task })}
+          onOpenTask={readOnly ? undefined : (task) => setModal({ mode: "edit", task })}
           onDatesChange={handleDatesChange}
+          readOnly={readOnly}
         />
       )}
       {view === "list" && (
         <TaskListView
           tasks={filtered}
-          onEdit={(task) => setModal({ mode: "edit", task })}
-          onDelete={(task) => setPendingDelete(task)}
+          onEdit={readOnly ? undefined : (task) => setModal({ mode: "edit", task })}
+          onDelete={readOnly ? undefined : (task) => setPendingDelete(task)}
         />
       )}
       {view === "kanban" && (
         <TaskKanbanView
           tasks={filtered}
-          onEdit={(task) => setModal({ mode: "edit", task })}
+          onEdit={readOnly ? undefined : (task) => setModal({ mode: "edit", task })}
           onStatusChange={handleStatusChange}
+          readOnly={readOnly}
         />
       )}
 

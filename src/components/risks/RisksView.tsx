@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Download, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -9,6 +9,8 @@ import { RiskHeatmap } from "@/components/risks/RiskHeatmap";
 import { RiskListView } from "@/components/risks/RiskListView";
 import { RiskForm, type RiskFormValues } from "@/components/risks/RiskForm";
 import { RISK_CATEGORY_META, RISK_STATUS_META, RISK_SCALE_LABELS } from "@/lib/risk-meta";
+import { canWrite, type Role } from "@/lib/permissions";
+import { toCsv, downloadCsv } from "@/lib/csv";
 import type { RiskDTO } from "@/types/risk";
 import type { UserOptionDTO } from "@/types/task";
 
@@ -29,11 +31,14 @@ export function RisksView({
   projectId,
   initialRisks,
   users,
+  currentRole,
 }: {
   projectId: string;
   initialRisks: RiskDTO[];
   users: UserOptionDTO[];
+  currentRole: Role;
 }) {
+  const readOnly = !canWrite(currentRole);
   const [risks, setRisks] = useState(initialRisks);
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -106,6 +111,20 @@ export function RisksView({
 
   const highSeverityCount = risks.filter((r) => r.severity >= 10).length;
 
+  function handleExport() {
+    const csv = toCsv(listFiltered, [
+      { header: "Nombre", value: (r) => r.name },
+      { header: "Categoría", value: (r) => RISK_CATEGORY_META[r.category].label },
+      { header: "Probabilidad", value: (r) => RISK_SCALE_LABELS[r.probability] },
+      { header: "Impacto", value: (r) => RISK_SCALE_LABELS[r.impact] },
+      { header: "Severidad", value: (r) => r.severity },
+      { header: "Estado", value: (r) => RISK_STATUS_META[r.status].label },
+      { header: "Responsable", value: (r) => r.owner?.name },
+      { header: "Plan de mitigación", value: (r) => r.mitigationPlan },
+    ]);
+    downloadCsv(`riesgos-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  }
+
   return (
     <div>
       <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -115,10 +134,18 @@ export function RisksView({
             <span className="ml-1 text-danger">· {highSeverityCount} de severidad alta o crítica</span>
           )}
         </p>
-        <Button onClick={() => setModal({ mode: "create" })}>
-          <Plus size={16} />
-          Nuevo riesgo
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleExport}>
+            <Download size={16} />
+            Exportar CSV
+          </Button>
+          {!readOnly && (
+            <Button onClick={() => setModal({ mode: "create" })}>
+              <Plus size={16} />
+              Nuevo riesgo
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -156,8 +183,8 @@ export function RisksView({
 
       <RiskListView
         risks={listFiltered}
-        onEdit={(risk) => setModal({ mode: "edit", risk })}
-        onDelete={(risk) => setPendingDelete(risk)}
+        onEdit={readOnly ? undefined : (risk) => setModal({ mode: "edit", risk })}
+        onDelete={readOnly ? undefined : (risk) => setPendingDelete(risk)}
       />
 
       <Modal

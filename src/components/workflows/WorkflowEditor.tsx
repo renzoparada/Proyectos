@@ -41,6 +41,7 @@ import { WORKFLOW_NODE_TYPES_MAP, type FlowNodeData } from "@/components/workflo
 import { WORKFLOW_NODE_META, DEFAULT_NODE_LABEL, type WorkflowNodeType } from "@/lib/workflow-meta";
 import { dbToFlowEdges, dbToFlowNodes, flowEdgesToPayload, flowNodesToPayload } from "@/lib/workflow-graph";
 import { formatDate } from "@/lib/utils";
+import { canWrite, type Role } from "@/lib/permissions";
 import type { WorkflowDTO, WorkflowSummaryDTO } from "@/types/workflow";
 
 const PALETTE: { type: WorkflowNodeType; icon: typeof PlayCircle }[] = [
@@ -55,11 +56,14 @@ function WorkflowEditorInner({
   workflow: initialWorkflow,
   otherWorkflows,
   projects,
+  currentRole,
 }: {
   workflow: WorkflowDTO;
   otherWorkflows: WorkflowSummaryDTO[];
   projects: { id: string; name: string }[];
+  currentRole: Role;
 }) {
+  const readOnly = !canWrite(currentRole);
   const router = useRouter();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
@@ -123,6 +127,7 @@ function WorkflowEditorInner({
   );
 
   function addNodeAt(type: WorkflowNodeType, clientX?: number, clientY?: number) {
+    if (readOnly) return;
     let position: { x: number; y: number };
     if (clientX !== undefined && clientY !== undefined) {
       // Drag-and-drop from the palette: use the actual drop point.
@@ -153,6 +158,7 @@ function WorkflowEditorInner({
   }
 
   function onDrop(e: React.DragEvent) {
+    if (readOnly) return;
     e.preventDefault();
     const type = e.dataTransfer.getData("application/workflow-node") as WorkflowNodeType;
     if (!type) return;
@@ -277,12 +283,14 @@ function WorkflowEditorInner({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="truncate text-sm font-semibold text-foreground">{meta.name}</h1>
-            <button
-              onClick={() => setEditingMeta(true)}
-              className="text-xs text-accent hover:underline"
-            >
-              editar
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => setEditingMeta(true)}
+                className="text-xs text-accent hover:underline"
+              >
+                editar
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted">
             <Badge tone="neutral">v{meta.version}</Badge>
@@ -298,44 +306,52 @@ function WorkflowEditorInner({
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          {saveError && <span className="text-xs text-danger">{saveError}</span>}
-          <Button variant="secondary" size="sm" onClick={handleDuplicate} disabled={duplicating}>
-            <Copy size={14} /> Duplicar
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => setConfirmDelete(true)}>
-            <Trash2 size={14} className="text-danger" />
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => handleSave(true)} disabled={saving}>
-            Nueva versión
-          </Button>
-          <Button size="sm" onClick={() => handleSave(false)} disabled={saving}>
-            <Save size={14} /> {saving ? "Guardando…" : "Guardar"}
-          </Button>
+          {readOnly ? (
+            <Badge tone="neutral">Solo lectura</Badge>
+          ) : (
+            <>
+              {saveError && <span className="text-xs text-danger">{saveError}</span>}
+              <Button variant="secondary" size="sm" onClick={handleDuplicate} disabled={duplicating}>
+                <Copy size={14} /> Duplicar
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setConfirmDelete(true)}>
+                <Trash2 size={14} className="text-danger" />
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => handleSave(true)} disabled={saving}>
+                Nueva versión
+              </Button>
+              <Button size="sm" onClick={() => handleSave(false)} disabled={saving}>
+                <Save size={14} /> {saving ? "Guardando…" : "Guardar"}
+              </Button>
+            </>
+          )}
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="hidden w-44 shrink-0 border-r border-border bg-surface p-3 sm:block">
-          <p className="mb-2 text-xs font-medium text-muted">Agregar nodo</p>
-          <div className="flex flex-col gap-1.5">
-            {PALETTE.map(({ type, icon: Icon }) => (
-              <button
-                key={type}
-                draggable
-                onDragStart={(e) => e.dataTransfer.setData("application/workflow-node", type)}
-                onClick={() => addNodeAt(type)}
-                title={WORKFLOW_NODE_META[type].description}
-                className="flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-2 text-left text-xs font-medium text-foreground hover:border-accent/40 hover:bg-surface-hover"
-              >
-                <Icon size={14} className="shrink-0 text-accent" />
-                {WORKFLOW_NODE_META[type].label}
-              </button>
-            ))}
-          </div>
-          <p className="mt-3 text-[11px] text-muted">
-            Arrastra o haz click para agregar. Conecta arrastrando desde el borde de un nodo.
-          </p>
-        </aside>
+        {!readOnly && (
+          <aside className="hidden w-44 shrink-0 border-r border-border bg-surface p-3 sm:block">
+            <p className="mb-2 text-xs font-medium text-muted">Agregar nodo</p>
+            <div className="flex flex-col gap-1.5">
+              {PALETTE.map(({ type, icon: Icon }) => (
+                <button
+                  key={type}
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData("application/workflow-node", type)}
+                  onClick={() => addNodeAt(type)}
+                  title={WORKFLOW_NODE_META[type].description}
+                  className="flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-2 text-left text-xs font-medium text-foreground hover:border-accent/40 hover:bg-surface-hover"
+                >
+                  <Icon size={14} className="shrink-0 text-accent" />
+                  {WORKFLOW_NODE_META[type].label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-[11px] text-muted">
+              Arrastra o haz click para agregar. Conecta arrastrando desde el borde de un nodo.
+            </p>
+          </aside>
+        )}
 
         <div ref={wrapperRef} className="react-flow-shell relative flex-1">
           <ReactFlow
@@ -343,13 +359,15 @@ function WorkflowEditorInner({
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
+            onConnect={readOnly ? undefined : onConnect}
             onSelectionChange={onSelectionChange}
             onDrop={onDrop}
             onDragOver={onDragOver}
             nodeTypes={WORKFLOW_NODE_TYPES_MAP}
             fitView
-            deleteKeyCode={["Backspace", "Delete"]}
+            nodesDraggable={!readOnly}
+            nodesConnectable={!readOnly}
+            deleteKeyCode={readOnly ? [] : ["Backspace", "Delete"]}
           >
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
             <Controls showInteractive={false} />
@@ -363,17 +381,20 @@ function WorkflowEditorInner({
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <Badge tone="neutral">{WORKFLOW_NODE_META[selectedNode.data.nodeType].label}</Badge>
-                  <button
-                    onClick={deleteSelectedNode}
-                    className="rounded-md p-1 text-muted hover:bg-surface-hover hover:text-danger"
-                    aria-label="Eliminar nodo"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {!readOnly && (
+                    <button
+                      onClick={deleteSelectedNode}
+                      className="rounded-md p-1 text-muted hover:bg-surface-hover hover:text-danger"
+                      aria-label="Eliminar nodo"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
                 <Field label="Etiqueta">
                   <Input
                     value={selectedNode.data.label}
+                    disabled={readOnly}
                     onChange={(e) => updateSelectedNodeLabel(e.target.value)}
                   />
                 </Field>
@@ -381,6 +402,7 @@ function WorkflowEditorInner({
                   <Field label="Flujo enlazado" hint="Se puede abrir con el ícono ↗ sobre el nodo">
                     <Select
                       value={selectedNode.data.meta?.targetWorkflowId ?? ""}
+                      disabled={readOnly}
                       onChange={(e) => updateSelectedNodeTarget(e.target.value)}
                     >
                       <option value="">Sin enlazar</option>
@@ -404,17 +426,20 @@ function WorkflowEditorInner({
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <Badge tone="neutral">Conector</Badge>
-                  <button
-                    onClick={deleteSelectedEdge}
-                    className="rounded-md p-1 text-muted hover:bg-surface-hover hover:text-danger"
-                    aria-label="Eliminar conector"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {!readOnly && (
+                    <button
+                      onClick={deleteSelectedEdge}
+                      className="rounded-md p-1 text-muted hover:bg-surface-hover hover:text-danger"
+                      aria-label="Eliminar conector"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
                 <Field label="Etiqueta" hint='Ej: "Sí" / "No" / "Aprobado"'>
                   <Input
                     value={typeof selectedEdge.label === "string" ? selectedEdge.label : ""}
+                    disabled={readOnly}
                     onChange={(e) => updateSelectedEdgeLabel(e.target.value)}
                   />
                 </Field>
@@ -454,6 +479,7 @@ export function WorkflowEditor(props: {
   workflow: WorkflowDTO;
   otherWorkflows: WorkflowSummaryDTO[];
   projects: { id: string; name: string }[];
+  currentRole: Role;
 }) {
   return (
     <ReactFlowProvider>

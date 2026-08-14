@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { WorkflowMetaForm, type WorkflowMetaFormValues } from "@/components/workflows/WorkflowMetaForm";
 import { formatDate } from "@/lib/utils";
+import { canWrite, type Role } from "@/lib/permissions";
 import type { WorkflowSummaryDTO } from "@/types/workflow";
 
 export function WorkflowsView({
@@ -18,13 +19,16 @@ export function WorkflowsView({
   projects,
   fixedProjectId,
   fetchUrl,
+  currentRole,
 }: {
   initialWorkflows: WorkflowSummaryDTO[];
   projects: { id: string; name: string }[];
   /** When set (per-project page), hides the project filter and scopes creation to it. */
   fixedProjectId?: string;
   fetchUrl: string;
+  currentRole: Role;
 }) {
+  const readOnly = !canWrite(currentRole);
   const router = useRouter();
   const [workflows, setWorkflows] = useState(initialWorkflows);
   const [kindFilter, setKindFilter] = useState<"ALL" | "TEMPLATE" | "PROJECT">("ALL");
@@ -94,10 +98,12 @@ export function WorkflowsView({
         ) : (
           <p className="text-xs text-muted">{workflows.length} flujo(s) en este proyecto</p>
         )}
-        <Button onClick={() => setCreating(true)}>
-          <Plus size={16} />
-          Nuevo flujo
-        </Button>
+        {!readOnly && (
+          <Button onClick={() => setCreating(true)}>
+            <Plus size={16} />
+            Nuevo flujo
+          </Button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -106,10 +112,12 @@ export function WorkflowsView({
           <p className="max-w-sm text-sm text-muted">
             Documenta un proceso operativo (ventas, onboarding, aprobaciones) como diagrama visual.
           </p>
-          <Button onClick={() => setCreating(true)}>
-            <Plus size={16} />
-            Nuevo flujo
-          </Button>
+          {!readOnly && (
+            <Button onClick={() => setCreating(true)}>
+              <Plus size={16} />
+              Nuevo flujo
+            </Button>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -137,20 +145,22 @@ export function WorkflowsView({
                 <span>· {w.nodeCount ?? 0} nodo(s)</span>
               </div>
               <p className="mt-auto text-xs text-muted">Actualizado {formatDate(w.updatedAt)}</p>
-              <div className="mt-3 flex items-center justify-end gap-1 border-t border-border pt-3">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleDuplicate(w)}
-                  disabled={duplicatingId === w.id}
-                >
-                  <Copy size={14} />
-                  Duplicar
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setPendingDelete(w)}>
-                  <Trash2 size={14} className="text-danger" />
-                </Button>
-              </div>
+              {!readOnly && (
+                <div className="mt-3 flex items-center justify-end gap-1 border-t border-border pt-3">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDuplicate(w)}
+                    disabled={duplicatingId === w.id}
+                  >
+                    <Copy size={14} />
+                    Duplicar
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setPendingDelete(w)}>
+                    <Trash2 size={14} className="text-danger" />
+                  </Button>
+                </div>
+              )}
             </Card>
           ))}
         </div>

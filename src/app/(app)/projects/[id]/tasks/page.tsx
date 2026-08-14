@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TasksView } from "@/components/tasks/TasksView";
 import type { TaskDTO, UserOptionDTO } from "@/types/task";
@@ -14,6 +15,7 @@ const taskInclude = {
 
 export default async function ProjectTasksPage(props: PageProps<"/projects/[id]/tasks">) {
   const { id } = await props.params;
+  const session = await requireSession();
 
   const [project, tasks, users] = await Promise.all([
     prisma.project.findUnique({ where: { id } }),
@@ -45,6 +47,7 @@ export default async function ProjectTasksPage(props: PageProps<"/projects/[id]/
         projectId={id}
         initialTasks={JSON.parse(JSON.stringify(tasks)) as TaskDTO[]}
         users={JSON.parse(JSON.stringify(users)) as UserOptionDTO[]}
+        currentRole={session.role}
       />
     </div>
   );

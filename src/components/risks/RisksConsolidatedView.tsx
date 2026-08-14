@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Download, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -10,6 +10,8 @@ import { RiskHeatmap } from "@/components/risks/RiskHeatmap";
 import { RiskListView } from "@/components/risks/RiskListView";
 import { RiskForm, type RiskFormValues } from "@/components/risks/RiskForm";
 import { RISK_CATEGORY_META, RISK_STATUS_META, RISK_SCALE_LABELS } from "@/lib/risk-meta";
+import { canWrite, type Role } from "@/lib/permissions";
+import { toCsv, downloadCsv } from "@/lib/csv";
 import type { RiskDTO } from "@/types/risk";
 import type { UserOptionDTO } from "@/types/task";
 
@@ -30,11 +32,14 @@ export function RisksConsolidatedView({
   initialRisks,
   users,
   projects,
+  currentRole,
 }: {
   initialRisks: RiskDTO[];
   users: UserOptionDTO[];
   projects: { id: string; name: string }[];
+  currentRole: Role;
 }) {
+  const readOnly = !canWrite(currentRole);
   const [risks, setRisks] = useState(initialRisks);
   const [projectFilter, setProjectFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
@@ -63,6 +68,21 @@ export function RisksConsolidatedView({
       (r) => r.probability === selectedCell.probability && r.impact === selectedCell.impact
     );
   }, [baseFiltered, selectedCell]);
+
+  function handleExport() {
+    const csv = toCsv(listFiltered, [
+      { header: "Nombre", value: (r) => r.name },
+      { header: "Proyecto", value: (r) => r.project?.name },
+      { header: "Categoría", value: (r) => RISK_CATEGORY_META[r.category].label },
+      { header: "Probabilidad", value: (r) => RISK_SCALE_LABELS[r.probability] },
+      { header: "Impacto", value: (r) => RISK_SCALE_LABELS[r.impact] },
+      { header: "Severidad", value: (r) => r.severity },
+      { header: "Estado", value: (r) => RISK_STATUS_META[r.status].label },
+      { header: "Responsable", value: (r) => r.owner?.name },
+      { header: "Plan de mitigación", value: (r) => r.mitigationPlan },
+    ]);
+    downloadCsv(`riesgos-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  }
 
   async function refetch() {
     const res = await fetch("/api/risks");
@@ -170,10 +190,18 @@ export function RisksConsolidatedView({
             </button>
           )}
         </div>
-        <Button onClick={() => setModal({ mode: "create" })} disabled={projects.length === 0}>
-          <Plus size={16} />
-          Nuevo riesgo
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleExport}>
+            <Download size={16} />
+            Exportar CSV
+          </Button>
+          {!readOnly && (
+            <Button onClick={() => setModal({ mode: "create" })} disabled={projects.length === 0}>
+              <Plus size={16} />
+              Nuevo riesgo
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="mb-4">
@@ -183,8 +211,8 @@ export function RisksConsolidatedView({
       <RiskListView
         risks={listFiltered}
         showProject
-        onEdit={(risk) => setModal({ mode: "edit", risk })}
-        onDelete={(risk) => setPendingDelete(risk)}
+        onEdit={readOnly ? undefined : (risk) => setModal({ mode: "edit", risk })}
+        onDelete={readOnly ? undefined : (risk) => setPendingDelete(risk)}
       />
 
       <Modal

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import type { SessionPayload } from "@/lib/session";
 
 export function AppShell({
@@ -44,7 +45,8 @@ export function AppShell({
           >
             <Menu size={20} />
           </button>
-          <span className="text-sm font-semibold">Command Center</span>
+          <span className="flex-1 text-sm font-semibold">Command Center</span>
+          <NotificationBell />
         </header>
         <main className="flex-1 overflow-y-auto scrollbar-thin">{children}</main>
       </div>

@@ -19,6 +19,7 @@ import { Modal } from "@/components/ui/Modal";
 import { ProjectForm, type ProjectFormValues } from "@/components/projects/ProjectForm";
 import { ProjectStatusBadge } from "@/components/projects/ProjectStatusBadge";
 import { formatBudget, formatDate } from "@/lib/utils";
+import { canWrite, isAdmin, type Role } from "@/lib/permissions";
 import type { ProjectDTO } from "@/types/project";
 
 export function ProjectDetailView({
@@ -26,12 +27,16 @@ export function ProjectDetailView({
   taskStats,
   riskStats,
   workflowCount,
+  currentRole,
 }: {
   project: ProjectDTO;
   taskStats: { total: number; overdue: number };
   riskStats: { total: number; highSeverity: number };
   workflowCount: number;
+  currentRole: Role;
 }) {
+  const canEdit = canWrite(currentRole);
+  const canDelete = isAdmin(currentRole);
   const router = useRouter();
   const [project, setProject] = useState(initial);
   const [editing, setEditing] = useState(false);
@@ -92,14 +97,20 @@ export function ProjectDetailView({
             <p className="mt-1 max-w-2xl text-sm text-muted">{project.description}</p>
           )}
         </div>
-        <div className="flex shrink-0 gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
-            <Pencil size={14} /> Editar
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => setConfirmDelete(true)}>
-            <Trash2 size={14} className="text-danger" />
-          </Button>
-        </div>
+        {(canEdit || canDelete) && (
+          <div className="flex shrink-0 gap-2">
+            {canEdit && (
+              <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                <Pencil size={14} /> Editar
+              </Button>
+            )}
+            {canDelete && (
+              <Button variant="secondary" size="sm" onClick={() => setConfirmDelete(true)}>
+                <Trash2 size={14} className="text-danger" />
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">

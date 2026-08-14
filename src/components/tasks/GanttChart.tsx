@@ -38,10 +38,12 @@ export function GanttChart({
   tasks,
   onOpenTask,
   onDatesChange,
+  readOnly = false,
 }: {
   tasks: TaskDTO[];
-  onOpenTask: (task: TaskDTO) => void;
+  onOpenTask?: (task: TaskDTO) => void;
   onDatesChange: (taskId: string, startDate: Date, endDate: Date) => Promise<void>;
+  readOnly?: boolean;
 }) {
   const [drag, setDrag] = useState<DragState | null>(null);
   const [preview, setPreview] = useState<PreviewMap>({});
@@ -91,6 +93,7 @@ export function GanttChart({
   }
 
   function startDrag(e: React.PointerEvent, task: TaskDTO, mode: DragMode) {
+    if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
@@ -136,7 +139,7 @@ export function GanttChart({
       dragMovedRef.current = false;
       return;
     }
-    onOpenTask(task);
+    onOpenTask?.(task);
   }
 
   function handlePointerUp() {
@@ -235,7 +238,7 @@ export function GanttChart({
                   <button
                     key={task.id}
                     type="button"
-                    onClick={() => onOpenTask(task)}
+                    onClick={() => onOpenTask?.(task)}
                     className="flex w-full flex-col justify-center gap-0.5 border-b border-border px-3 text-left hover:bg-surface-hover"
                     style={{ height: ROW_HEIGHT }}
                   >

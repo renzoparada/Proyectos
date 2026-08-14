@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { SESSION_COOKIE, type SessionPayload, verifySessionToken } from "@/lib/session";
 
@@ -43,4 +44,31 @@ const ROLE_RANK: Record<SessionPayload["role"], number> = {
 
 export function hasRole(session: SessionPayload, minRole: SessionPayload["role"]) {
   return ROLE_RANK[session.role] >= ROLE_RANK[minRole];
+}
+
+/**
+ * Auth + role gate for route handlers. Returns `{ session }` when the caller
+ * is logged in and meets `minRole`, otherwise `{ response }` with the 401/403
+ * to return as-is: `const gate = await requireApiRole(...); if (gate.response) return gate.response;`
+ *
+ * Defaults to COLLABORATOR, the minimum role for any create/update mutation
+ * — READ_ONLY users can look at everything but never write. Pass "ADMIN" for
+ * destructive actions (deleting a project) and user management.
+ */
+export async function requireApiRole(
+  minRole: SessionPayload["role"] = "COLLABORATOR"
+): Promise<{ session: SessionPayload; response?: undefined } | { session?: undefined; response: NextResponse }> {
+  const session = await getSession();
+  if (!session) {
+    return { response: NextResponse.json({ error: "No autorizado" }, { status: 401 }) };
+  }
+  if (!hasRole(session, minRole)) {
+    return {
+      response: NextResponse.json(
+        { error: "Tu rol no tiene permiso para realizar esta acción" },
+        { status: 403 }
+      ),
+    };
+  }
+  return { session };
 }

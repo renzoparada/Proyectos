@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Users } from "lucide-react";
 import { NAV_ITEMS } from "@/components/layout/nav-items";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import { cn } from "@/lib/utils";
 import type { SessionPayload } from "@/lib/session";
 
@@ -29,10 +30,11 @@ export function Sidebar({
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-sm font-bold text-accent-foreground">
           C
         </div>
-        <div>
-          <p className="text-sm font-semibold leading-tight text-foreground">Command Center</p>
-          <p className="text-xs leading-tight text-muted">Panel de proyectos</p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold leading-tight text-foreground">Command Center</p>
+          <p className="truncate text-xs leading-tight text-muted">Panel de proyectos</p>
         </div>
+        <NotificationBell onNavigate={onNavigate} align="left" />
       </div>
 
       <nav className="flex-1 space-y-0.5 px-3">
@@ -74,6 +76,22 @@ export function Sidebar({
             </Link>
           );
         })}
+
+        {user.role === "ADMIN" && (
+          <Link
+            href="/team"
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              pathname === "/team" || pathname.startsWith("/team/")
+                ? "bg-accent/10 text-accent"
+                : "text-foreground/80 hover:bg-surface-hover hover:text-foreground"
+            )}
+          >
+            <Users size={17} />
+            Equipo
+          </Link>
+        )}
       </nav>
 
       <div className="border-t border-border p-3">

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ProjectDetailView } from "@/components/projects/ProjectDetailView";
 import type { ProjectDTO } from "@/types/project";
@@ -7,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ProjectDetailPage(props: PageProps<"/projects/[id]">) {
   const { id } = await props.params;
+  const session = await requireSession();
 
   const [project, taskTotal, overdueTotal, riskTotal, highSeverityTotal, workflowTotal] =
     await Promise.all([
@@ -31,6 +33,7 @@ export default async function ProjectDetailPage(props: PageProps<"/projects/[id]
       taskStats={{ total: taskTotal, overdue: overdueTotal }}
       riskStats={{ total: riskTotal, highSeverity: highSeverityTotal }}
       workflowCount={workflowTotal}
+      currentRole={session.role}
     />
   );
 }

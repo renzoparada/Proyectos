@@ -12,8 +12,8 @@ export function TaskListView({
   onDelete,
 }: {
   tasks: TaskDTO[];
-  onEdit: (task: TaskDTO) => void;
-  onDelete: (task: TaskDTO) => void;
+  onEdit?: (task: TaskDTO) => void;
+  onDelete?: (task: TaskDTO) => void;
 }) {
   if (tasks.length === 0) {
     return (
@@ -45,14 +45,22 @@ export function TaskListView({
             return (
               <tr key={task.id} className="border-b border-border last:border-0 hover:bg-surface-hover">
                 <td className="px-4 py-2.5">
-                  <button
-                    onClick={() => onEdit(task)}
-                    className="flex items-center gap-1.5 text-left font-medium text-foreground hover:text-accent"
-                  >
-                    {task.isMilestone && <Flag size={13} className="shrink-0 text-accent" />}
-                    {overdue && <AlertTriangle size={13} className="shrink-0 text-danger" />}
-                    <span className="truncate">{task.name}</span>
-                  </button>
+                  {onEdit ? (
+                    <button
+                      onClick={() => onEdit(task)}
+                      className="flex items-center gap-1.5 text-left font-medium text-foreground hover:text-accent"
+                    >
+                      {task.isMilestone && <Flag size={13} className="shrink-0 text-accent" />}
+                      {overdue && <AlertTriangle size={13} className="shrink-0 text-danger" />}
+                      <span className="truncate">{task.name}</span>
+                    </button>
+                  ) : (
+                    <span className="flex items-center gap-1.5 font-medium text-foreground">
+                      {task.isMilestone && <Flag size={13} className="shrink-0 text-accent" />}
+                      {overdue && <AlertTriangle size={13} className="shrink-0 text-danger" />}
+                      <span className="truncate">{task.name}</span>
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-2.5">
                   <TaskStatusBadge status={task.status} />
@@ -74,22 +82,28 @@ export function TaskListView({
                   </div>
                 </td>
                 <td className="px-4 py-2.5">
-                  <div className="flex justify-end gap-1">
-                    <button
-                      onClick={() => onEdit(task)}
-                      className="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground"
-                      aria-label="Editar"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      onClick={() => onDelete(task)}
-                      className="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-danger"
-                      aria-label="Eliminar"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                  {(onEdit || onDelete) && (
+                    <div className="flex justify-end gap-1">
+                      {onEdit && (
+                        <button
+                          onClick={() => onEdit(task)}
+                          className="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground"
+                          aria-label="Editar"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button
+                          onClick={() => onDelete(task)}
+                          className="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-danger"
+                          aria-label="Eliminar"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </td>
               </tr>
             );

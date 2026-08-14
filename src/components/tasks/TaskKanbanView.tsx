@@ -13,10 +13,12 @@ export function TaskKanbanView({
   tasks,
   onEdit,
   onStatusChange,
+  readOnly = false,
 }: {
   tasks: TaskDTO[];
-  onEdit: (task: TaskDTO) => void;
+  onEdit?: (task: TaskDTO) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
+  readOnly?: boolean;
 }) {
   const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -30,11 +32,13 @@ export function TaskKanbanView({
           <div
             key={status}
             onDragOver={(e) => {
+              if (readOnly) return;
               e.preventDefault();
               setDragOverColumn(status);
             }}
             onDragLeave={() => setDragOverColumn((c) => (c === status ? null : c))}
             onDrop={(e) => {
+              if (readOnly) return;
               e.preventDefault();
               const taskId = e.dataTransfer.getData("text/plain");
               setDragOverColumn(null);
@@ -58,14 +62,15 @@ export function TaskKanbanView({
               return (
                 <button
                   key={task.id}
-                  draggable
+                  draggable={!readOnly}
                   onDragStart={(e) => {
+                    if (readOnly) return;
                     e.dataTransfer.setData("text/plain", task.id);
                     e.dataTransfer.effectAllowed = "move";
                     setDraggingId(task.id);
                   }}
                   onDragEnd={() => setDraggingId(null)}
-                  onClick={() => onEdit(task)}
+                  onClick={() => onEdit?.(task)}
                   className={cn(
                     "flex flex-col gap-1.5 rounded-md border border-border bg-background p-2.5 text-left shadow-sm hover:border-accent/40",
                     draggingId === task.id && "opacity-40"

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { requireApiRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { workflowGraphSchema } from "@/lib/validations/workflow";
@@ -11,8 +11,9 @@ type RouteParams = { params: Promise<{ id: string }> };
 // (there's no real-time collab to reconcile), so the simplest correct model
 // is to replace everything for this workflow inside one transaction.
 export async function PUT(request: Request, { params }: RouteParams) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const gate = await requireApiRole();
+  if (gate.response) return gate.response;
+  const { session } = gate;
 
   const { id } = await params;
   const existing = await prisma.workflow.findUnique({ where: { id } });

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { WorkflowEditor } from "@/components/workflows/WorkflowEditor";
 import type { WorkflowDTO, WorkflowSummaryDTO } from "@/types/workflow";
@@ -7,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function WorkflowEditorPage(props: PageProps<"/workflows/[id]">) {
   const { id } = await props.params;
+  const session = await requireSession();
 
   const [workflow, otherWorkflows, projects] = await Promise.all([
     prisma.workflow.findUnique({
@@ -33,6 +35,7 @@ export default async function WorkflowEditorPage(props: PageProps<"/workflows/[i
         workflow={JSON.parse(JSON.stringify(workflow)) as WorkflowDTO}
         otherWorkflows={JSON.parse(JSON.stringify(otherWorkflows)) as WorkflowSummaryDTO[]}
         projects={projects}
+        currentRole={session.role}
       />
     </div>
   );

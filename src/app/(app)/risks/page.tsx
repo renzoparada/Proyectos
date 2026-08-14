@@ -1,3 +1,4 @@
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { RisksConsolidatedView } from "@/components/risks/RisksConsolidatedView";
 import type { RiskDTO } from "@/types/risk";
@@ -11,6 +12,7 @@ const riskInclude = {
 } as const;
 
 export default async function RisksPage() {
+  const session = await requireSession();
   const [risks, users, projects] = await Promise.all([
     prisma.risk.findMany({ include: riskInclude, orderBy: { severity: "desc" } }),
     prisma.user.findMany({ select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
@@ -30,6 +32,7 @@ export default async function RisksPage() {
         initialRisks={JSON.parse(JSON.stringify(risks)) as RiskDTO[]}
         users={JSON.parse(JSON.stringify(users)) as UserOptionDTO[]}
         projects={projects}
+        currentRole={session.role}
       />
     </div>
   );

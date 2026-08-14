@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { RisksView } from "@/components/risks/RisksView";
 import type { RiskDTO } from "@/types/risk";
@@ -14,6 +15,7 @@ const riskInclude = {
 
 export default async function ProjectRisksPage(props: PageProps<"/projects/[id]/risks">) {
   const { id } = await props.params;
+  const session = await requireSession();
 
   const [project, risks, users] = await Promise.all([
     prisma.project.findUnique({ where: { id } }),
@@ -45,6 +47,7 @@ export default async function ProjectRisksPage(props: PageProps<"/projects/[id]/
         projectId={id}
         initialRisks={JSON.parse(JSON.stringify(risks)) as RiskDTO[]}
         users={JSON.parse(JSON.stringify(users)) as UserOptionDTO[]}
+        currentRole={session.role}
       />
     </div>
   );

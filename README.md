@@ -4,11 +4,13 @@ Plataforma centralizada para gestionar múltiples proyectos: cronogramas, riesgo
 flujos operativos y un dashboard ejecutivo. Ver [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 para el detalle de arquitectura y el plan de fases.
 
-**Estado actual: Fase 4 — Flujos (completa).** CRUD de proyectos, login,
-modelo de datos completo, layout base, tareas con Gantt/Lista/Kanban, riesgos
-con matriz de calor, y ahora un constructor visual de flujos (React Flow)
-con nodos, conectores, plantillas y versionado. Fases 5-6 (Dashboard
-ejecutivo, pulido) están planificadas — ver el roadmap en `ARCHITECTURE.md`.
+**Estado actual: Fase 6 — Pulido (completa). Las 6 fases del roadmap original
+están terminadas.** CRUD de proyectos, login, modelo de datos completo, layout
+base, tareas con Gantt/Lista/Kanban, riesgos con matriz de calor, constructor
+visual de flujos (React Flow), dashboard ejecutivo (health score, gráficos
+Recharts, timeline y top riesgos consolidados), roles multi-usuario reales
+(ADMIN/COLLABORATOR/READ_ONLY) con gestión de equipo, exportación a CSV y
+notificaciones in-app. Ver el detalle de cada fase en `ARCHITECTURE.md`.
 
 ## Stack
 
@@ -16,8 +18,11 @@ ejecutivo, pulido) están planificadas — ver el roadmap en `ARCHITECTURE.md`.
 - **Estilos**: Tailwind CSS v4
 - **Base de datos**: PostgreSQL vía Prisma ORM 7 (driver adapter `@prisma/adapter-pg`)
 - **Auth**: sesión propia con JWT firmado (`jose`) en cookie httpOnly + `bcryptjs`
-  para contraseñas — pensado para migrar a multi-usuario/roles sin rehacer el modelo
+  para contraseñas, con roles reales (`ADMIN`/`COLLABORATOR`/`READ_ONLY`)
+  aplicados en cada API mutante y reflejados en la UI
 - **Diagramas de flujo**: `@xyflow/react` (React Flow v12)
+- **Gráficos**: `recharts`
+- **Fechas**: `date-fns`
 - **Iconos**: lucide-react
 
 > **Nota sobre versiones**: este proyecto usa Next.js 16, que renombró
@@ -68,8 +73,11 @@ src/
       risks/              # matriz de calor consolidada (todos los proyectos)
       workflows/          # catálogo de flujos (plantillas + de proyecto)
         [id]/              # editor visual (React Flow), full-bleed
+      team/               # gestión de usuarios (solo ADMIN)
     api/                # route handlers (REST-ish, JSON)
       auth/{login,logout,me}/
+      admin/users/, admin/users/[id]/
+      notifications/       # tareas vencidas, riesgos críticos, hitos próximos
       users/
       projects/[id]/{tasks,risks}/
       tasks/[id]/{dates,status}/
@@ -81,19 +89,26 @@ src/
     globals.css          # tokens de diseño (Tailwind v4 @theme)
   components/
     ui/                  # Button, Input, Card, Badge, Modal, etc. (genéricos)
-    layout/              # Sidebar, AppShell, nav-items
+    layout/              # Sidebar, AppShell, nav-items, NotificationBell
     projects/            # componentes específicos del módulo Proyectos
     tasks/                # GanttChart, TaskListView, TaskKanbanView, TaskForm
     risks/                 # RiskHeatmap, RiskListView, RiskForm, vista consolidada
     workflows/              # WorkflowEditor (React Flow), nodos custom, lista
+    dashboard/               # gráficos Recharts, HealthBadge, listas del ejecutivo
+    team/                     # TeamView, UserForm (gestión de usuarios)
   lib/
     prisma.ts            # cliente Prisma (driver adapter pg)
-    auth.ts / session.ts # sesión JWT (session.ts es edge-safe, para proxy.ts)
+    auth.ts / session.ts # sesión JWT (session.ts es edge-safe, para proxy.ts);
+                          # requireApiRole() protege mutaciones por rol mínimo
+    permissions.ts        # canWrite()/isAdmin() — mismas reglas en el cliente
     activity.ts           # helper para ActivityLog
-    validations/          # esquemas zod
+    validations/          # esquemas zod (incluye user.ts)
     risk-meta.ts           # categorías/estados/bandas de severidad del heatmap
     gantt-dates.ts         # helpers de fecha puros para el Gantt (sin deps)
     workflow-graph.ts       # conversión DB ⇄ nodos/edges de React Flow
+    health-score.ts          # algoritmo de salud de proyecto (Fase 5)
+    dashboard-data.ts         # queries agregadas para el dashboard ejecutivo
+    csv.ts                     # generación/descarga de CSV sin dependencias
   types/                  # DTOs compartidos front/back
   generated/prisma/        # cliente Prisma generado (gitignored)
   proxy.ts                 # protección de rutas (reemplaza middleware.ts)

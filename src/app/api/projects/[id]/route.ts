@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, requireApiRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { projectInputSchema } from "@/lib/validations/project";
@@ -24,8 +24,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const gate = await requireApiRole();
+  if (gate.response) return gate.response;
+  const { session } = gate;
 
   const { id } = await params;
   const existing = await prisma.project.findUnique({ where: { id } });
@@ -67,8 +68,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteParams) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  // Deleting a project cascades to its tasks, risks and workflows — admin only.
+  const gate = await requireApiRole("ADMIN");
+  if (gate.response) return gate.response;
+  const { session } = gate;
 
   const { id } = await params;
   const existing = await prisma.project.findUnique({ where: { id } });

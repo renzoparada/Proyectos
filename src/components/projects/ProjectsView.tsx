@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, Trash2, Pencil, Users } from "lucide-react";
+import { Download, Plus, Search, Trash2, Pencil, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -11,6 +11,8 @@ import { ProjectStatusBadge } from "@/components/projects/ProjectStatusBadge";
 import { ProjectForm, type ProjectFormValues } from "@/components/projects/ProjectForm";
 import { PROJECT_STATUS_META } from "@/lib/project-status";
 import { formatBudget, formatDate } from "@/lib/utils";
+import { canWrite, isAdmin, type Role } from "@/lib/permissions";
+import { toCsv, downloadCsv } from "@/lib/csv";
 import type { ProjectDTO } from "@/types/project";
 
 function toPayload(values: ProjectFormValues) {
@@ -26,7 +28,15 @@ function toPayload(values: ProjectFormValues) {
   };
 }
 
-export function ProjectsView({ initialProjects }: { initialProjects: ProjectDTO[] }) {
+export function ProjectsView({
+  initialProjects,
+  currentRole,
+}: {
+  initialProjects: ProjectDTO[];
+  currentRole: Role;
+}) {
+  const canEdit = canWrite(currentRole);
+  const canDelete = isAdmin(currentRole);
   const [projects, setProjects] = useState(initialProjects);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -44,6 +54,22 @@ export function ProjectsView({ initialProjects }: { initialProjects: ProjectDTO[
       return true;
     });
   }, [projects, search, statusFilter]);
+
+  function handleExport() {
+    const csv = toCsv(filtered, [
+      { header: "Nombre", value: (p) => p.name },
+      { header: "Cliente", value: (p) => p.client },
+      { header: "Estado", value: (p) => PROJECT_STATUS_META[p.status].label },
+      { header: "Responsable", value: (p) => p.owner?.name },
+      { header: "Fecha inicio", value: (p) => (p.startDate ? formatDate(p.startDate) : "") },
+      { header: "Fecha fin", value: (p) => (p.endDate ? formatDate(p.endDate) : "") },
+      { header: "Presupuesto planeado", value: (p) => p.budgetPlanned },
+      { header: "Presupuesto gastado", value: (p) => p.budgetSpent },
+      { header: "Tareas", value: (p) => p._count?.tasks },
+      { header: "Riesgos", value: (p) => p._count?.risks },
+    ]);
+    downloadCsv(`proyectos-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  }
 
   async function refetch() {
     const res = await fetch("/api/projects");
@@ -98,10 +124,18 @@ export function ProjectsView({ initialProjects }: { initialProjects: ProjectDTO[
           <h1 className="text-xl font-semibold text-foreground">Proyectos</h1>
           <p className="text-sm text-muted">{projects.length} proyecto(s) en total</p>
         </div>
-        <Button onClick={() => setModal({ mode: "create" })}>
-          <Plus size={16} />
-          Nuevo proyecto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleExport}>
+            <Download size={16} />
+            Exportar CSV
+          </Button>
+          {canEdit && (
+            <Button onClick={() => setModal({ mode: "create" })}>
+              <Plus size={16} />
+              Nuevo proyecto
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
@@ -141,7 +175,7 @@ export function ProjectsView({ initialProjects }: { initialProjects: ProjectDTO[
               ? "Crea tu primer proyecto para empezar a organizar tareas, riesgos y flujos."
               : "Ajusta la búsqueda o el filtro de estado."}
           </p>
-          {projects.length === 0 && (
+          {projects.length === 0 && canEdit && (
             <Button onClick={() => setModal({ mode: "create" })}>
               <Plus size={16} />
               Nuevo proyecto
@@ -181,19 +215,25 @@ export function ProjectsView({ initialProjects }: { initialProjects: ProjectDTO[
                   </p>
                 )}
               </div>
-              <div className="mt-3 flex items-center justify-end gap-1 border-t border-border pt-3">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setModal({ mode: "edit", project })}
-                >
-                  <Pencil size={14} />
-                  Editar
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setPendingDelete(project)}>
-                  <Trash2 size={14} className="text-danger" />
-                </Button>
-              </div>
+              {(canEdit || canDelete) && (
+                <div className="mt-3 flex items-center justify-end gap-1 border-t border-border pt-3">
+                  {canEdit && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setModal({ mode: "edit", project })}
+                    >
+                      <Pencil size={14} />
+                      Editar
+                    </Button>
+                  )}
+                  {canDelete && (
+                    <Button size="sm" variant="ghost" onClick={() => setPendingDelete(project)}>
+                      <Trash2 size={14} className="text-danger" />
+                    </Button>
+                  )}
+                </div>
+              )}
             </Card>
           ))}
         </div>

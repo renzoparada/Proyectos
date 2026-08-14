@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, requireApiRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { taskInputSchema } from "@/lib/validations/task";
@@ -26,8 +26,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
 }
 
 export async function POST(request: Request, { params }: RouteParams) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const gate = await requireApiRole();
+  if (gate.response) return gate.response;
+  const { session } = gate;
 
   const { id: projectId } = await params;
   const project = await prisma.project.findUnique({ where: { id: projectId } });

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
+import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { WorkflowsView } from "@/components/workflows/WorkflowsView";
 import type { WorkflowSummaryDTO } from "@/types/workflow";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ProjectWorkflowsPage(props: PageProps<"/projects/[id]/workflows">) {
   const { id } = await props.params;
+  const session = await requireSession();
 
   const [project, workflows, projects] = await Promise.all([
     prisma.project.findUnique({ where: { id } }),
@@ -49,6 +51,7 @@ export default async function ProjectWorkflowsPage(props: PageProps<"/projects/[
         projects={projects}
         fixedProjectId={id}
         fetchUrl={`/api/workflows?projectId=${id}`}
+        currentRole={session.role}
       />
     </div>
   );

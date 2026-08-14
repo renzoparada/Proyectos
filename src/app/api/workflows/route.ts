@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, requireApiRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { workflowMetaSchema } from "@/lib/validations/workflow";
@@ -30,8 +30,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const gate = await requireApiRole();
+  if (gate.response) return gate.response;
+  const { session } = gate;
 
   const body = await request.json().catch(() => null);
   const parsed = workflowMetaSchema.safeParse(body);
