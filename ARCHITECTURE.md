@@ -98,6 +98,23 @@
   `NotificationBell` hace polling cada 2 minutos; si el uso creciera a
   multi-usuario con notificaciones dirigidas por persona, ahí sí conviene una
   tabla con estado de lectura y quizás WebSockets/SSE en vez de polling.
+- **Deploy en Vercel + Neon: `prisma migrate deploy` necesita la conexión
+  directa, no la pooleada.** El build de producción es
+  `prisma generate && ${DATABASE_URL_UNPOOLED:+DATABASE_URL=$DATABASE_URL_UNPOOLED} prisma migrate deploy && next build`
+  (ver `package.json`). El pooler de Neon (PgBouncer en modo transacción,
+  el host con sufijo `-pooler` que usa `DATABASE_URL`) no sostiene bien el
+  advisory lock que `migrate deploy` usa para evitar migraciones
+  concurrentes (`pg_advisory_lock`) — bajo pooling de transacción cada
+  sentencia puede caer en una conexión de backend distinta, así que el lock
+  puede no liberarse correctamente y un deploy posterior se cuelga hasta
+  timeout (`Error: P1002`, visto en un deploy real de este proyecto). La
+  solución estándar de Prisma+Neon es correr las migraciones contra la URL
+  directa (`DATABASE_URL_UNPOOLED`, sin `-pooler` en el host) y dejar la
+  pooleada (`DATABASE_URL`) para las queries normales de la app en runtime
+  serverless. El `${VAR:+...}` es a propósito: si `DATABASE_URL_UNPOOLED` no
+  existe (como en desarrollo local, donde solo hay `DATABASE_URL` en
+  `.env`), la expansión queda vacía y el comando corre igual con la
+  variable normal — no rompe `pnpm build` fuera de Vercel.
 
 ### Nota de versiones (importante para quien siga desarrollando)
 
