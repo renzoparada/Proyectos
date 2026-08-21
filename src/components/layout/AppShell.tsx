@@ -45,7 +45,7 @@ export function AppShell({
           >
             <Menu size={20} />
           </button>
-          <span className="flex-1 text-sm font-semibold">Command Center</span>
+          <span className="flex-1 truncate text-sm font-semibold">CRM Proyectos MyMktPro</span>
           <NotificationBell />
         </header>
         <main className="flex-1 overflow-y-auto scrollbar-thin">{children}</main>

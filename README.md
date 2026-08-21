@@ -1,4 +1,4 @@
-# Command Center — CRM / Project Management personal
+# CRM Proyectos MyMktPro
 
 Plataforma centralizada para gestionar múltiples proyectos: cronogramas, riesgos,
 flujos operativos y un dashboard ejecutivo. Ver [`ARCHITECTURE.md`](./ARCHITECTURE.md)
