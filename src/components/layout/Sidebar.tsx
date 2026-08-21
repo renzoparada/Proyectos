@@ -31,7 +31,7 @@ export function Sidebar({
           C
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold leading-tight text-foreground">Command Center</p>
+          <p className="truncate text-sm font-semibold leading-tight text-foreground">CRM Proyectos MyMktPro</p>
           <p className="truncate text-xs leading-tight text-muted">Panel de proyectos</p>
         </div>
         <NotificationBell onNavigate={onNavigate} align="left" />

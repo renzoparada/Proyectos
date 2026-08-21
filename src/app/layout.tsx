@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Command Center",
+  title: "CRM Proyectos MyMktPro",
   description: "Panel centralizado de proyectos, riesgos y flujos.",
 };
 

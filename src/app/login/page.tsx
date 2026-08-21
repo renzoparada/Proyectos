@@ -45,7 +45,7 @@ function LoginForm() {
           <div className="flex h-10 w-10 items-center justify-center rounded-md bg-accent text-base font-bold text-accent-foreground">
             C
           </div>
-          <h1 className="text-lg font-semibold text-foreground">Command Center</h1>
+          <h1 className="text-lg font-semibold text-foreground">CRM Proyectos MyMktPro</h1>
           <p className="text-sm text-muted">Inicia sesión para ver tus proyectos</p>
         </div>
 
