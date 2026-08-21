@@ -100,21 +100,26 @@
   tabla con estado de lectura y quizás WebSockets/SSE en vez de polling.
 - **Deploy en Vercel + Neon: `prisma migrate deploy` necesita la conexión
   directa, no la pooleada.** El build de producción es
-  `prisma generate && ${DATABASE_URL_UNPOOLED:+DATABASE_URL=$DATABASE_URL_UNPOOLED} prisma migrate deploy && next build`
-  (ver `package.json`). El pooler de Neon (PgBouncer en modo transacción,
-  el host con sufijo `-pooler` que usa `DATABASE_URL`) no sostiene bien el
-  advisory lock que `migrate deploy` usa para evitar migraciones
-  concurrentes (`pg_advisory_lock`) — bajo pooling de transacción cada
-  sentencia puede caer en una conexión de backend distinta, así que el lock
-  puede no liberarse correctamente y un deploy posterior se cuelga hasta
-  timeout (`Error: P1002`, visto en un deploy real de este proyecto). La
-  solución estándar de Prisma+Neon es correr las migraciones contra la URL
-  directa (`DATABASE_URL_UNPOOLED`, sin `-pooler` en el host) y dejar la
-  pooleada (`DATABASE_URL`) para las queries normales de la app en runtime
-  serverless. El `${VAR:+...}` es a propósito: si `DATABASE_URL_UNPOOLED` no
-  existe (como en desarrollo local, donde solo hay `DATABASE_URL` en
-  `.env`), la expansión queda vacía y el comando corre igual con la
-  variable normal — no rompe `pnpm build` fuera de Vercel.
+  `prisma generate && node scripts/migrate-deploy.mjs && next build`
+  (ver `package.json` y `scripts/migrate-deploy.mjs`). El pooler de Neon
+  (PgBouncer en modo transacción, el host con sufijo `-pooler` que usa
+  `DATABASE_URL`) no sostiene bien el advisory lock que `migrate deploy`
+  usa para evitar migraciones concurrentes (`pg_advisory_lock`) — bajo
+  pooling de transacción cada sentencia puede caer en una conexión de
+  backend distinta, así que el lock puede no liberarse correctamente y un
+  deploy posterior se cuelga hasta timeout (`Error: P1002`, visto en un
+  deploy real de este proyecto). La solución estándar de Prisma+Neon es
+  correr las migraciones contra la URL directa (`DATABASE_URL_UNPOOLED`,
+  sin `-pooler` en el host) y dejar la pooleada (`DATABASE_URL`) para las
+  queries normales de la app en runtime serverless.
+  `scripts/migrate-deploy.mjs` hace ese swap (usa `DATABASE_URL_UNPOOLED`
+  si existe, si no cae en `DATABASE_URL` normal) mediante `spawnSync` con
+  un `env` de Node en vez de un one-liner de shell — un intento anterior con
+  `${VAR:+...}` inline en `package.json` rompió en Vercel (`sh: line 1:
+  DATABASE_URL=...: No such file or directory`) porque el `&` de la
+  connection string de Neon (`?sslmode=require&channel_binding=require`)
+  confunde al shell si el quoting no es exacto; pasar el valor por un
+  objeto `env` de Node evita ese problema por completo.
 
 ### Nota de versiones (importante para quien siga desarrollando)
 
